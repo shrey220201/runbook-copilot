@@ -1,0 +1,20 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+.env
+
+# Data (don't commit large raw corpora or vector indexes to git)
+data/raw/
+data/synthetic_tickets/*.json
+qdrant_storage/
+
+# Model weights / fine-tuning artifacts
+qlora/adapter/
+*.safetensors
+*.gguf
+
+# OS / editor clutter
+.DS_Store
+Thumbs.db
+.vscode/
