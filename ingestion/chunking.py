@@ -51,7 +51,7 @@ class TechnicalMarkdownChunker:
 
         for line in lines:
             # Check for code fence start/end
-            fence_match = re.match(r"^(\`\`\`|~~~)", line)
+            fence_match = re.match(r"^(```|~~~)", line)
             if fence_match:
                 if not in_code_block:
                     # Flush prior normal text block
@@ -119,7 +119,7 @@ class TechnicalMarkdownChunker:
                 return doc.title
             return " > ".join([h[1] for h in header_stack])
 
-        def flush_current_chunk():
+        def flush_current_chunk(carry_overlap: bool = False):
             nonlocal current_chunk_parts, current_chunk_len, has_code, chunk_idx
             if not current_chunk_parts:
                 return
@@ -152,9 +152,16 @@ class TechnicalMarkdownChunker:
             )
             chunks.append(chunk)
             chunk_idx += 1
-            current_chunk_parts = []
-            current_chunk_len = 0
-            has_code = False
+
+            if carry_overlap and self.overlap_size > 0 and len(chunk_body) > self.overlap_size:
+                overlap_text = chunk_body[-self.overlap_size:]
+                current_chunk_parts = [overlap_text]
+                current_chunk_len = len(overlap_text)
+                has_code = "```" in overlap_text
+            else:
+                current_chunk_parts = []
+                current_chunk_len = 0
+                has_code = False
 
         for block in blocks:
             b_type = block["type"]
@@ -170,7 +177,7 @@ class TechnicalMarkdownChunker:
 
                 # Flush chunk if we accumulated enough text
                 if current_chunk_len >= self.min_chunk_size:
-                    flush_current_chunk()
+                    flush_current_chunk(carry_overlap=False)
                 
                 # Append header to current part
                 current_chunk_parts.append(block["content"])
@@ -180,28 +187,28 @@ class TechnicalMarkdownChunker:
                 code_len = len(block["content"])
                 # If code block alone causes overflow, flush preceding text first
                 if current_chunk_len > 0 and (current_chunk_len + code_len > self.max_chunk_size):
-                    flush_current_chunk()
+                    flush_current_chunk(carry_overlap=True)
                 
                 current_chunk_parts.append(block["content"])
                 current_chunk_len += code_len
                 has_code = True
 
                 if current_chunk_len >= self.max_chunk_size:
-                    flush_current_chunk()
+                    flush_current_chunk(carry_overlap=True)
 
             else:  # Text block
                 text_len = len(block["content"])
                 if current_chunk_len > 0 and (current_chunk_len + text_len > self.max_chunk_size):
-                    flush_current_chunk()
+                    flush_current_chunk(carry_overlap=True)
 
                 current_chunk_parts.append(block["content"])
                 current_chunk_len += text_len
 
                 if current_chunk_len >= self.max_chunk_size:
-                    flush_current_chunk()
+                    flush_current_chunk(carry_overlap=True)
 
         # Flush any remaining parts
-        flush_current_chunk()
+        flush_current_chunk(carry_overlap=False)
 
         return chunks
 
@@ -210,11 +217,13 @@ def chunk_all_documents(
     docs: List[RawDocument],
     max_chunk_size: int = 1500,
     min_chunk_size: int = 200,
+    overlap_size: int = 150,
 ) -> List[DocumentChunk]:
     """Helper to chunk a list of RawDocuments."""
     chunker = TechnicalMarkdownChunker(
         max_chunk_size=max_chunk_size,
         min_chunk_size=min_chunk_size,
+        overlap_size=overlap_size,
     )
     all_chunks: List[DocumentChunk] = []
     for doc in docs:

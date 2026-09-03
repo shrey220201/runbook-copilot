@@ -18,7 +18,7 @@ class LLMClient:
         self,
         host: Optional[str] = None,
         model: Optional[str] = None,
-        timeout: int = 120,
+        timeout: int = 300,
     ):
         self.host = (host or OLLAMA_HOST).rstrip("/")
         self.model = model or OLLAMA_MODEL
@@ -64,6 +64,7 @@ class LLMClient:
             "stream": False,
             "options": {
                 "temperature": temperature,
+                "num_ctx": kwargs.pop("num_ctx", 4096),
                 **kwargs,
             },
         }
@@ -87,6 +88,7 @@ class LLMClient:
             "stream": True,
             "options": {
                 "temperature": temperature,
+                "num_ctx": kwargs.pop("num_ctx", 4096),
                 **kwargs,
             },
         }

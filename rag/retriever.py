@@ -74,14 +74,14 @@ class QdrantRetriever:
                 ]
             )
 
-        search_results = self.client.search(
+        search_results = self.client.query_points(
             collection_name=self.collection_name,
-            query_vector=query_vector,
+            query=query_vector,
             limit=top_k,
             score_threshold=score_threshold,
             query_filter=query_filter,
             with_payload=True,
-        )
+        ).points
 
         results: List[RetrievedChunk] = []
         for hit in search_results:
