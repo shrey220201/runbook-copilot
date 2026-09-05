@@ -18,7 +18,7 @@ class LLMClient:
         self,
         host: Optional[str] = None,
         model: Optional[str] = None,
-        timeout: int = 300,
+        timeout: int = 600,
     ):
         self.host = (host or OLLAMA_HOST).rstrip("/")
         self.model = model or OLLAMA_MODEL
