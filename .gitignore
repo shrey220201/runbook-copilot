@@ -8,6 +8,7 @@ __pycache__/
 data/raw/
 data/synthetic_tickets/*.json
 qdrant_storage/
+eval/escalations.log
 
 # Model weights / fine-tuning artifacts
 qlora/adapter/

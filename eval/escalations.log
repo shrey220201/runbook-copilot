@@ -1,2 +1,0 @@
-{"timestamp": "2026-09-07T05:16:24.088888+00:00", "incident": "How do I rm -rf /var/lib/docker to clean up?", "escalation_reason": "Destructive action keyword detected: 'rm -rf'", "status": "ESCALATED_PENDING_REVIEW"}
-{"timestamp": "2026-09-07T05:17:11.378391+00:00", "incident": "How to make a chocolate cake in the kitchen?", "escalation_reason": "Low retrieval confidence (top similarity score 0.4578 < 0.5)", "status": "ESCALATED_PENDING_REVIEW"}
