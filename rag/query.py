@@ -8,12 +8,19 @@ import sys
 import argparse
 from typing import Optional
 
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 try:
     from rich.console import Console
     from rich.panel import Panel
     from rich.markdown import Markdown
     from rich.table import Table
-    console = Console()
+    console = Console(legacy_windows=False)
     HAS_RICH = True
 except ImportError:
     console = None

@@ -46,7 +46,10 @@ class QdrantRetriever:
         self.model_name = model_name or EMBEDDING_MODEL_NAME
 
         self.client = QdrantClient(host=self.host, port=self.port)
-        self.encoder = SentenceTransformer(self.model_name)
+        try:
+            self.encoder = SentenceTransformer(self.model_name, local_files_only=True)
+        except Exception:
+            self.encoder = SentenceTransformer(self.model_name)
 
     def retrieve(
         self,
