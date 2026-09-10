@@ -11,7 +11,7 @@ qdrant_storage/
 eval/escalations.log
 
 # Model weights / fine-tuning artifacts
-qlora/adapter/
+qlora/adapter_output/
 *.safetensors
 *.gguf
 

@@ -688,7 +688,7 @@ def load_all_sources(
 def load_documents_from_disk(source: Optional[str] = None) -> List[RawDocument]:
     """Load previously fetched and saved RawDocuments from data/raw directory."""
     documents: List[RawDocument] = []
-    sources = [source] if source else ["mslearn", "proxmox", "serverfault"]
+    sources = [source] if source else ["mslearn", "proxmox", "serverfault", "nakivo"]
 
     for src in sources:
         src_dir = RAW_DATA_DIR / src
