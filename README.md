@@ -177,6 +177,18 @@ A systematic adversarial test (`agent/chaos_eval.py`, 12 cases) found that the d
 
 ---
 
+## Deployment at Scale
+
+This project runs entirely on a single laptop for demonstration purposes. A production deployment would look meaningfully different, drawing on lessons from real enterprise infrastructure work:
+
+- **Containerization**: package `rag/`, `agent/`, and `ingestion/` as separate Docker services (already partially true - Qdrant runs containerized) behind a reverse proxy (nginx/Traefik) for TLS termination and routing, rather than exposing services directly.
+- **Secrets management**: replace the local `.env`/Modal-secret pattern with a proper vault (HashiCorp Vault, or a cloud provider's secrets manager) for the Hugging Face token and any future API credentials, with rotation policies.
+- **Monitoring and alerting**: the escalation log (`eval/escalations.log`) is currently a flat file - at scale, this should feed into a real monitoring stack (Prometheus/Grafana, or a SIEM), with alerting on escalation rate spikes as a leading indicator of either a bad deployment or a genuinely bad day for the infrastructure team.
+- **Horizontal scaling of inference**: Ollama's single-instance, single-request model (`OLLAMA_NUM_PARALLEL=1`, discovered during Phase 2's eval harness debugging) doesn't scale to concurrent users - a production deployment would need either a GPU-backed inference server (vLLM, TGI) behind a load balancer, or a managed hosted API, depending on cost/latency/data-privacy tradeoffs.
+- **CI/CD for the retrieval corpus**: rather than manually re-running `embed_and_index.py`, a scheduled pipeline would re-scrape and re-index documentation sources on a cadence, with the idempotent chunk-ID design already in place from Phase 1 making incremental updates safe.
+
+---
+
 ## License
 
 This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
