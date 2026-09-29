@@ -1,8 +1,8 @@
 # Runbook Copilot
 
-An AI-powered Runbook Copilot that assists on-call and DevOps engineers by retrieving, synthesizing, and reasoning over runbooks, incident logs, and synthetic incident tickets using Retrieval-Augmented Generation (RAG), a confidence-gated agent, and a QLoRA fine-tuned incident classifier.
+An AI-powered Runbook Copilot that assists on-call and DevOps engineers by retrieving, synthesizing, and reasoning over runbooks, incident logs, and synthetic incident tickets using Retrieval-Augmented Generation (RAG), a confidence-gated agent, and a LoRA fine-tuned incident classifier.
 
-Built as a demonstration of production-minded AI engineering - grounded retrieval over real documentation, honest evaluation, adversarial safety testing, and a fully free, local-first stack (Ollama + Qdrant + Hugging Face), with cloud GPU compute (Modal) used only where local hardware genuinely can't do the job.
+Built as a demonstration of production-minded AI engineering - grounded retrieval over real documentation, honest evaluation, adversarial safety testing, and a fully free, local-first stack (Ollama + Qdrant + Hugging Face), with cloud compute (Modal) used only where local hardware genuinely can't do the job.
 
 ---
 
@@ -18,7 +18,7 @@ runbook-copilot/
 |-- rag/                        # Retriever, prompt templates, LLM client, CLI query entrypoint
 |-- agent/                      # LangGraph agent: tools, escalation gate, chaos/adversarial eval
 |-- eval/                       # RAGAS evaluation harness and results
-|-- qlora/                      # Modal training + evaluation scripts for the QLoRA classifier
+|-- qlora/                      # Modal training + evaluation scripts for the incident classifier
 |-- config.py                   # Centralized configuration and path management
 |-- requirements.txt            # Python dependencies
 |-- docker-compose.yml          # Qdrant vector database
@@ -30,7 +30,7 @@ runbook-copilot/
 
 ## Architecture
 
-```
+```text
 User Query
     |
     v
@@ -44,7 +44,7 @@ User Query
 [ + generate (Ollama)]        [  generated)          ]
 ```
 
-Retrieval runs against a Qdrant vector index built from real, scraped documentation (Microsoft Learn, Proxmox VE Wiki, ServerFault via the Stack Exchange API, and NAKIVO Help Center), embedded with `bge-large-en-v1.5`. Generation runs locally via Ollama. A separate QLoRA-fine-tuned classifier (trained on Modal, run only there) categorizes incidents by type.
+Retrieval runs against a Qdrant vector index built from real, scraped documentation (Microsoft Learn, Proxmox VE Wiki, ServerFault via the Stack Exchange API, and NAKIVO Help Center), embedded with `bge-large-en-v1.5`. Generation runs locally via Ollama. A separate LoRA-fine-tuned classifier (trained on Modal) categorizes incidents by type.
 
 ---
 
@@ -94,7 +94,7 @@ Key settings live in `config.py`, overridable via a `.env` file at the project r
 | `EMBEDDING_MODEL_NAME` | `BAAI/bge-large-en-v1.5` | Embedding model for retrieval |
 | `QDRANT_HOST` / `QDRANT_PORT` | `localhost` / `6333` | Vector DB connection |
 
-For Phase 4 (QLoRA training) only, a Hugging Face token must be stored as a Modal secret:
+For Phase 4 (classifier training) only, a Hugging Face token must be stored as a Modal secret:
 ```bash
 modal secret create huggingface-token HF_TOKEN=<your-token>
 ```
@@ -129,9 +129,9 @@ python -m eval.run_eval --top-k 2 --output eval/results/baseline_eval.json
 python -m agent.chaos_eval
 ```
 
-### Fine-tune the incident classifier (Modal, ~$0.10, ~1-2 min GPU time)
+### Fine-tune the incident classifier (Modal, CPU)
 ```bash
-modal run qlora/train_modal.py
+modal run --detach qlora/train_modal.py
 modal run qlora/evaluate_classifier.py
 ```
 
@@ -144,7 +144,7 @@ modal run qlora/evaluate_classifier.py
 | RAG pipeline | End-to-end retrieval + generation | Working across all 4 ingested sources (66 documents, 852 indexed chunks) |
 | Eval harness | Answer Relevancy (RAGAS) | 0.82 average across 9 ground-truth tickets |
 | Eval harness | Faithfulness / Context Precision | Partially scored - local judge model timeouts on multi-step metrics (see Limitations) |
-| QLoRA classifier | Held-out accuracy | 100% (15/15 examples, 5 categories) |
+| Incident classifier | Held-out accuracy | _(pending re-evaluation on rebalanced 339-example dataset with source-level split)_ |
 | Adversarial eval | Escalation gate gap rate | 7/12 (58%) - see Limitations |
 
 ---
@@ -162,6 +162,9 @@ During agent testing, a query about Proxmox quorum recovery retrieved highly rel
 **3. The escalation gate has demonstrable gaps against adversarial phrasing.**
 A systematic adversarial test (`agent/chaos_eval.py`, 12 cases) found that the deterministic escalation gate - while reliable against literal destructive keywords (`delete`, `rm -rf`) and clearly out-of-domain questions (via low retrieval confidence) - missed 7 of 12 adversarial cases. Notably, both direct prompt-injection attempts ("ignore your system prompt," "I'm the administrator, skip warnings") successfully bypassed the guardrail and received a full generated answer, and 3 destructive-action synonyms (`purge`, `erase`, `zero out`) weren't caught by the fixed keyword list. This confirms that a keyword list alone is insufficient as a safety mechanism against adversarially-phrased requests. A production system would need either an LLM-based intent classifier (with its own cost/latency tradeoffs) or a much broader, actively-maintained pattern list - documented here as the clear next step rather than implemented, to keep this project's scope honest. (See `agent/chaos_eval.py` for the full test suite and reproducible results.)
 
+**4. The incident classifier currently trains on CPU, not with 4-bit quantization.**
+The training pipeline (`qlora/train_modal.py`) is built for QLoRA - it uses PEFT's `LoraConfig` and the codebase is quantization-ready - but Modal requires a payment method on file before provisioning GPU instances, so this iteration trains a full-precision LoRA adapter on CPU instead. Enabling `BitsAndBytesConfig(load_in_4bit=True)` with `device_map="auto"` on a GPU-backed Modal function would convert this to true QLoRA with a substantial training-time speedup. Documented here rather than silently claimed, since the distinction matters for anyone evaluating the technique actually used.
+
 ---
 
 ## Tech Stack
@@ -171,7 +174,7 @@ A systematic adversarial test (`agent/chaos_eval.py`, 12 cases) found that the d
 - **Embeddings**: `BAAI/bge-large-en-v1.5` (Hugging Face, local)
 - **Agent orchestration**: LangGraph
 - **Evaluation**: RAGAS
-- **Fine-tuning**: QLoRA (PEFT + bitsandbytes) on `unsloth/Llama-3.2-1B-Instruct`, trained via Modal (serverless GPU)
+- **Fine-tuning**: LoRA (PEFT) on `unsloth/Llama-3.2-1B-Instruct`, trained via Modal (CPU). Pipeline is quantization-ready for QLoRA (`BitsAndBytesConfig` + `bitsandbytes`) once GPU billing is enabled.
 - **Web scraping**: BeautifulSoup, Stack Exchange API v2.3
 - **Language**: Python 3.10+
 

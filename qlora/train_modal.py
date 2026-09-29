@@ -1,14 +1,20 @@
 """
-Modal-based QLoRA fine-tuning job for the Runbook Copilot incident
+Modal-based LoRA fine-tuning job for the Runbook Copilot incident
 classifier. Trains unsloth/Llama-3.2-1B-Instruct (ungated mirror) to
-classify an incident description into one of 5 categories:
-active-directory, virtualization, networking, storage, backup.
+classify an incident description into one of 6 categories:
+active-directory, virtualization, networking, storage, backup, other.
 
-Training data: data/qlora_training/classifier_dataset.jsonl (72 examples,
-built in a prior step from real ingested docs + synthetic tickets).
+Training data: data/qlora_training/classifier_dataset.jsonl (339 examples,
+built from real ingested docs + a rebalanced 64-ticket synthetic seed).
+
+Note: this trains a full-precision LoRA adapter on CPU. It does not use
+4-bit quantization (QLoRA) — that requires a GPU, which requires a
+payment method on file with Modal. If/when GPU access is enabled, add
+BitsAndBytesConfig(load_in_4bit=True) and device_map="auto" for true
+QLoRA and a large training-time speedup.
 
 Usage:
-    modal run qlora/train_modal.py
+    modal run --detach qlora/train_modal.py
 
 Output: LoRA adapter weights saved to a Modal Volume, downloadable
 afterward via `modal volume get`.
@@ -35,7 +41,6 @@ image = (
         "torch",
         "transformers>=4.44.0",
         "peft>=0.12.0",
-        "bitsandbytes>=0.43.0",
         "accelerate>=0.33.0",
         "datasets",
     )

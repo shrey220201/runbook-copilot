@@ -1,5 +1,5 @@
 """
-Load the trained QLoRA adapter and test its actual classification accuracy
+Load the trained LoRA adapter and test its actual classification accuracy
 on real examples - not just loss, but does it predict the right category.
 
 Usage:
@@ -25,7 +25,6 @@ image = (
         "torch",
         "transformers>=4.44.0",
         "peft>=0.12.0",
-        "bitsandbytes>=0.43.0",
         "accelerate>=0.33.0",
     )
 )
