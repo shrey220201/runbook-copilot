@@ -1,0 +1,34 @@
+﻿
+=== mslearn ===
+  Active Directory: 7
+  Hyper-V Virtualization: 7
+  Networking & DNS: 6
+
+=== proxmox ===
+  Backup & Disaster Recovery: 1
+  Cluster Filesystem: 1
+  Cluster & Corosync: 1
+  Storage & Hardware: 1
+  Firewall & Security: 1
+  High Availability: 1
+  Virtual Machines (KVM): 1
+  LXC Containers: 1
+  Networking: 1
+  Cluster Networking: 1
+  Storage: 1
+  General Troubleshooting: 1
+  ZFS Storage: 1
+
+=== serverfault ===
+  proxmox: 5
+  windows-server-2019: 5
+  active-directory: 5
+  networking: 5
+  hyper-v: 5
+
+=== Existing ticket categories (from tickets.json) ===
+  storage: 3
+  virtualization: 2
+  networking: 2
+  active-directory: 1
+  backup: 1

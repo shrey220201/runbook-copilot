@@ -339,6 +339,7 @@ def load_mslearn_docs(
             if not markdown_body.startswith("# "):
                 markdown_body = f"# {title}\n\n{markdown_body}"
 
+            product_name = "active-directory" if "Active Directory" in category else ("hyper-v" if "Hyper-V" in category else "networking")
             doc = RawDocument(
                 id=doc_id,
                 title=title,
@@ -348,6 +349,9 @@ def load_mslearn_docs(
                 metadata={
                     "category": category,
                     "platform": "windows-server",
+                    "vendor": "microsoft",
+                    "product": product_name,
+                    "doc_type": "troubleshooting",
                     "fetched_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                 },
             )
@@ -440,6 +444,27 @@ PROXMOX_URLS = [
         "url": "https://pve.proxmox.com/wiki/Separate_Cluster_Network",
         "category": "Cluster Networking",
     },
+    # New pages added in Phase 7 — expand backup and storage coverage
+    {
+        "id": "proxmox-backup-server",
+        "url": "https://pbs.proxmox.com/docs/backup-client.html",
+        "category": "Backup \u0026 Disaster Recovery",
+    },
+    {
+        "id": "proxmox-ceph-storage",
+        "url": "https://pve.proxmox.com/wiki/Deploy_Hyper-Converged_Ceph_Cluster",
+        "category": "Storage \u0026 Hardware",
+    },
+    {
+        "id": "proxmox-user-management",
+        "url": "https://pve.proxmox.com/wiki/User_Management",
+        "category": "Firewall \u0026 Security",
+    },
+    {
+        "id": "proxmox-vzdump-backup",
+        "url": "https://pve.proxmox.com/pve-docs/chapter-vzdump.html",
+        "category": "Backup \u0026 Disaster Recovery",
+    },
 ]
 
 
@@ -498,6 +523,9 @@ def load_proxmox_docs(
                 metadata={
                     "category": category,
                     "platform": "proxmox/linux",
+                    "vendor": "proxmox",
+                    "product": "pve",
+                    "doc_type": "wiki",
                     "fetched_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                 },
             )
@@ -646,6 +674,9 @@ def load_serverfault_docs(
                         "score": q_score,
                         "tags": q_tags,
                         "platform": "serverfault/sysadmin",
+                        "vendor": "serverfault",
+                        "product": tag,
+                        "doc_type": "qa",
                         "fetched_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                     },
                 )
@@ -669,6 +700,224 @@ def load_serverfault_docs(
 
 
 # =====================================================================
+# 4. Command-Literal & Technical Reference Sources
+# =====================================================================
+
+REFERENCE_SOURCES = [
+    # Proxmox VE Command-line references (High priority)
+    {
+        "id": "proxmox-ref-pvecm",
+        "url": "https://pve.proxmox.com/pve-docs/pvecm.1.html",
+        "vendor": "proxmox",
+        "product": "pve",
+        "doc_type": "reference",
+        "category": "Cluster & Corosync",
+        "title": "Proxmox VE: pvecm(1) - Proxmox VE Cluster Manager CLI Reference",
+        "target_dir": "proxmox",
+    },
+    {
+        "id": "proxmox-ref-qm",
+        "url": "https://pve.proxmox.com/pve-docs/qm.1.html",
+        "vendor": "proxmox",
+        "product": "pve",
+        "doc_type": "reference",
+        "category": "Virtual Machines (KVM)",
+        "title": "Proxmox VE: qm(1) - Qemu/KVM Virtual Machine Manager CLI Reference",
+        "target_dir": "proxmox",
+    },
+    {
+        "id": "proxmox-ref-pct",
+        "url": "https://pve.proxmox.com/pve-docs/pct.1.html",
+        "vendor": "proxmox",
+        "product": "pve",
+        "doc_type": "reference",
+        "category": "LXC Containers",
+        "title": "Proxmox VE: pct(1) - Proxmox Container Toolkit CLI Reference",
+        "target_dir": "proxmox",
+    },
+    {
+        "id": "proxmox-ref-pveceph",
+        "url": "https://pve.proxmox.com/pve-docs/pveceph.1.html",
+        "vendor": "proxmox",
+        "product": "pve",
+        "doc_type": "reference",
+        "category": "Storage & Hardware",
+        "title": "Proxmox VE: pveceph(1) - Manage Ceph Services on Proxmox VE Nodes",
+        "target_dir": "proxmox",
+    },
+    {
+        "id": "proxmox-ref-pvesm",
+        "url": "https://pve.proxmox.com/pve-docs/pvesm.1.html",
+        "vendor": "proxmox",
+        "product": "pve",
+        "doc_type": "reference",
+        "category": "Storage",
+        "title": "Proxmox VE: pvesm(1) - Proxmox VE Storage Manager CLI Reference",
+        "target_dir": "proxmox",
+    },
+    # Microsoft PowerShell Module references
+    {
+        "id": "mslearn-ref-hyperv-powershell",
+        "url": "https://learn.microsoft.com/en-us/powershell/module/hyper-v/",
+        "vendor": "microsoft",
+        "product": "hyper-v",
+        "doc_type": "reference",
+        "category": "Hyper-V Virtualization",
+        "title": "Microsoft Learn: Hyper-V PowerShell Module Reference",
+        "target_dir": "mslearn",
+    },
+    {
+        "id": "mslearn-ref-activedirectory-powershell",
+        "url": "https://learn.microsoft.com/en-us/powershell/module/activedirectory/",
+        "vendor": "microsoft",
+        "product": "active-directory",
+        "doc_type": "reference",
+        "category": "Active Directory",
+        "title": "Microsoft Learn: Active Directory PowerShell Module Reference",
+        "target_dir": "mslearn",
+    },
+    # Cisco IOS Fundamentals command reference
+    {
+        "id": "cisco-ref-ios-fundamentals",
+        "url": "https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/fundamentals/command/cf_book.html",
+        "vendor": "cisco",
+        "product": "ios",
+        "doc_type": "reference",
+        "category": "Networking",
+        "title": "Cisco IOS: Configuration Fundamentals Command Reference",
+        "target_dir": "cisco",
+    },
+]
+
+CISCO_IOS_FALLBACK_MARKDOWN = """# Cisco IOS: Configuration Fundamentals Command Reference
+
+## Overview
+This reference covers fundamental configuration and troubleshooting commands for Cisco IOS network devices, routers, and switches.
+
+## Exec and Privilege Mode Navigation
+- `enable`: Enter privileged EXEC mode (requires enable secret / password).
+- `disable`: Exit privileged EXEC mode back to user EXEC mode.
+- `configure terminal` (`conf t`): Enter global configuration mode from privileged EXEC.
+- `exit`: Return to previous configuration level or log out.
+- `end`: Return immediately to privileged EXEC mode from any configuration level.
+
+## Essential Interface Configuration Commands
+- `interface <type> <number>` (e.g. `interface GigabitEthernet0/0/0`): Enter interface configuration mode.
+- `ip address <ip-address> <subnet-mask>`: Assign an IPv4 address and subnet mask to an interface.
+- `no shutdown`: Administratively enable an interface (bring link up).
+- `shutdown`: Administratively disable an interface.
+- `description <text>`: Add a human-readable label to an interface.
+- `duplex {auto | full | half}`: Configure interface duplex mode.
+- `speed {auto | 10 | 100 | 1000}`: Configure interface port speed.
+
+## Routing and Gateway Commands
+- `ip route <network-prefix> <subnet-mask> <next-hop-ip | exit-interface>`: Add a static route to the routing table.
+- `ip default-gateway <ip-address>`: Configure default gateway for Layer 2 switches.
+- `ip routing`: Enable IPv4 routing on Layer 3 capable switches and routers.
+
+## Verification and Troubleshooting Commands
+- `show ip interface brief`: Display summary of all interfaces, IP addresses, layer 1 status (Status), and layer 2 status (Protocol).
+- `show running-config` (`sh run`): Display active configuration currently running in RAM.
+- `show startup-config` (`sh start`): Display saved configuration stored in NVRAM.
+- `show ip route`: Display IPv4 routing table entries, directly connected subnets, and routing protocols.
+- `show interfaces <name>`: Display detailed statistics, error counts (CRC errors, input errors, collisions, drops) for an interface.
+- `show vlan brief`: Display configured VLANs, VLAN IDs, names, and assigned switchports.
+- `show mac address-table`: Display MAC address learning table on Cisco switches.
+- `show arp`: Display ARP cache mapping IP addresses to MAC addresses and interfaces.
+- `ping <ip-address>`: Send ICMP echo requests to test IP reachability.
+- `traceroute <ip-address>`: Trace hop-by-hop packet transit across network routers.
+
+## Configuration Management and Persistence
+- `copy running-config startup-config` (`write memory` / `wr`): Save active configuration to NVRAM so changes survive reboot.
+- `reload`: Reboot router or switch.
+- `erase startup-config`: Erase NVRAM configuration to reset device to factory defaults upon next reload.
+"""
+
+
+def load_reference_docs(
+    save_to_disk: bool = True,
+    delay_seconds: float = 1.5,
+) -> List[RawDocument]:
+    """Fetch command-literal and module reference guides for Proxmox, Hyper-V, AD, and Cisco."""
+    logger.info(f"Starting Reference Documentation loader ({len(REFERENCE_SOURCES)} targets)...")
+    documents: List[RawDocument] = []
+
+    for index, target in enumerate(REFERENCE_SOURCES, 1):
+        doc_id = target["id"]
+        url = target["url"]
+        vendor = target["vendor"]
+        product = target["product"]
+        doc_type = target["doc_type"]
+        category = target["category"]
+        title = target["title"]
+        target_dir = RAW_DATA_DIR / target["target_dir"]
+
+        logger.info(f"[{index}/{len(REFERENCE_SOURCES)}] Processing reference: {title} ({url})")
+
+        markdown_body = ""
+        try:
+            resp = requests.get(url, headers=DEFAULT_REQUEST_HEADERS, timeout=20)
+            if resp.status_code == 200:
+                soup = BeautifulSoup(resp.text, "html.parser")
+                content_container = (
+                    soup.find("div", id="content")
+                    or soup.find("main", id="main")
+                    or soup.find("div", class_="content")
+                    or soup.find("article")
+                    or soup.find("body")
+                )
+                if content_container:
+                    for extra in content_container.select("#toc, .toc, .mw-editsection, #header, #footer, nav, .breadcrumbs, .page-metadata"):
+                        extra.decompose()
+                    markdown_body = html_element_to_markdown(content_container)
+                    if not markdown_body.startswith("# "):
+                        markdown_body = f"# {title}\n\n{markdown_body}"
+            else:
+                logger.warning(f"Fetch returned HTTP {resp.status_code} for {url}.")
+        except Exception as e:
+            logger.warning(f"Error fetching {url}: {e}")
+
+        # Fallback for Cisco IOS if blocked or 404
+        if not markdown_body and vendor == "cisco":
+            logger.info("Using curated Cisco IOS Configuration Fundamentals command reference.")
+            markdown_body = CISCO_IOS_FALLBACK_MARKDOWN
+
+        if not markdown_body:
+            logger.warning(f"Could not generate markdown content for {doc_id}. Skipping.")
+            continue
+
+        doc = RawDocument(
+            id=doc_id,
+            title=title,
+            content=markdown_body,
+            source=f"{vendor.capitalize()} Reference",
+            url=url,
+            metadata={
+                "category": category,
+                "platform": f"{vendor}/{product}",
+                "vendor": vendor,
+                "product": product,
+                "doc_type": doc_type,
+                "fetched_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            },
+        )
+        documents.append(doc)
+
+        if save_to_disk:
+            target_dir.mkdir(parents=True, exist_ok=True)
+            file_path = target_dir / f"{doc_id}.json"
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(doc.to_dict(), f, indent=2, ensure_ascii=False)
+            logger.info(f"Saved reference doc to {file_path}")
+
+        if index < len(REFERENCE_SOURCES):
+            time.sleep(delay_seconds)
+
+    logger.info(f"Finished Reference Documentation loader. Successfully loaded {len(documents)}/{len(REFERENCE_SOURCES)} docs.")
+    return documents
+
+
+# =====================================================================
 # Main Unified Loader
 # =====================================================================
 
@@ -676,11 +925,12 @@ def load_all_sources(
     save_to_disk: bool = True,
     delay_seconds: float = 1.5,
 ) -> List[RawDocument]:
-    """Run all three source loaders and return aggregated raw documents."""
+    """Run all source loaders and return aggregated raw documents."""
     all_docs: List[RawDocument] = []
     all_docs.extend(load_mslearn_docs(save_to_disk=save_to_disk, delay_seconds=delay_seconds))
     all_docs.extend(load_proxmox_docs(save_to_disk=save_to_disk, delay_seconds=delay_seconds))
     all_docs.extend(load_serverfault_docs(save_to_disk=save_to_disk, delay_seconds=delay_seconds))
+    all_docs.extend(load_reference_docs(save_to_disk=save_to_disk, delay_seconds=delay_seconds))
     logger.info(f"Total raw documents loaded across all sources: {len(all_docs)}")
     return all_docs
 
@@ -688,7 +938,7 @@ def load_all_sources(
 def load_documents_from_disk(source: Optional[str] = None) -> List[RawDocument]:
     """Load previously fetched and saved RawDocuments from data/raw directory."""
     documents: List[RawDocument] = []
-    sources = [source] if source else ["mslearn", "proxmox", "serverfault", "nakivo"]
+    sources = [source] if source else ["mslearn", "proxmox", "serverfault", "nakivo", "cisco"]
 
     for src in sources:
         src_dir = RAW_DATA_DIR / src
@@ -718,7 +968,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Runbook Copilot Real Data Loaders")
     parser.add_argument(
         "--source",
-        choices=["mslearn", "proxmox", "serverfault", "all"],
+        choices=["mslearn", "proxmox", "serverfault", "reference", "all"],
         default="all",
         help="Specify source to load (default: all)",
     )
@@ -742,5 +992,8 @@ if __name__ == "__main__":
         load_proxmox_docs(save_to_disk=save, delay_seconds=args.delay)
     elif args.source == "serverfault":
         load_serverfault_docs(save_to_disk=save, delay_seconds=args.delay)
+    elif args.source == "reference":
+        load_reference_docs(save_to_disk=save, delay_seconds=args.delay)
     else:
         load_all_sources(save_to_disk=save, delay_seconds=args.delay)
+

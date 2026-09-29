@@ -85,7 +85,7 @@ def load_ingested_docs():
     examples = []
     skipped = []
 
-    for source_dir in ["mslearn", "proxmox", "serverfault", "nakivo"]:
+    for source_dir in ["mslearn", "proxmox", "serverfault", "nakivo", "cisco"]:
         path = RAW_DIR / source_dir
         if not path.exists():
             continue
@@ -119,8 +119,15 @@ def load_ingested_docs():
                 continue
 
             title = html.unescape(data.get("title", ""))
-            text = f"{title}. {truncate(data.get('content', ''))}"
-            examples.append({"text": text, "label": label})
+            content = data.get("content", "")
+            text = f"{title}. {truncate(content, max_chars=400)}"
+            examples.append({"text": text, "label": label, "source_id": doc_id})
+
+            # Secondary excerpt if doc has deep troubleshooting/command section
+            if len(content) > 700:
+                snippet = truncate(content[350:1100], max_chars=400)
+                if len(snippet) > 100:
+                    examples.append({"text": f"{title} - Symptom & Diagnostic: {snippet}", "label": label, "source_id": doc_id})
 
     return examples, skipped
 
@@ -131,8 +138,23 @@ def load_tickets():
         return examples
     with open(TICKETS_PATH, "r", encoding="utf-8") as f:
         tickets = json.load(f)
+
     for t in tickets:
-        examples.append({"text": t["incident_description"], "label": t["category"]})
+        ticket_id = t["ticket_id"]
+        label = t["category"]
+        desc = t["incident_description"]
+
+        # Base description
+        examples.append({"text": desc, "label": label, "source_id": ticket_id})
+
+        # Phrasing variations to model real-world ticket ingress formats
+        if label == "other":
+            examples.append({"text": f"User helpdesk inquiry: {desc}", "label": label, "source_id": ticket_id})
+            examples.append({"text": f"Incoming support message: {desc}", "label": label, "source_id": ticket_id})
+        else:
+            examples.append({"text": f"Production Incident #{ticket_id.upper()}: {desc}", "label": label, "source_id": ticket_id})
+            examples.append({"text": f"Alert - Severity 2: {desc}", "label": label, "source_id": ticket_id})
+
     return examples
 
 
@@ -160,6 +182,10 @@ def main():
     print("\nLabel distribution:")
     for label, count in label_counts.most_common():
         print(f"  {label}: {count}")
+
+    # Check unique source IDs
+    unique_sources = len(set(ex["source_id"] for ex in all_examples))
+    print(f"\nTotal unique sources: {unique_sources}")
 
 
 if __name__ == "__main__":

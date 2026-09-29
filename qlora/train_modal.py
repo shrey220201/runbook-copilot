@@ -23,7 +23,7 @@ import modal
 app = modal.App("runbook-copilot-qlora")
 
 BASE_MODEL = "unsloth/Llama-3.2-1B-Instruct"
-CATEGORIES = ["active-directory", "virtualization", "networking", "storage", "backup"]
+CATEGORIES = ["active-directory", "virtualization", "networking", "storage", "backup", "other"]
 
 # Persistent volume to store the trained adapter
 volume = modal.Volume.from_name("runbook-copilot-adapter", create_if_missing=True)
@@ -54,23 +54,25 @@ def build_prompt(text: str) -> str:
 
 @app.function(
     image=image,
-    gpu="A10G",
+    cpu=16,
+    memory=32768,
     timeout=3600,
     secrets=[modal.Secret.from_name("huggingface-token")],
     volumes={ADAPTER_DIR: volume},
 )
 def train(dataset_jsonl: str):
+    import random
+    from collections import defaultdict
     import torch
     from datasets import Dataset
     from transformers import (
         AutoModelForCausalLM,
         AutoTokenizer,
-        BitsAndBytesConfig,
         TrainingArguments,
         Trainer,
         default_data_collator,
     )
-    from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+    from peft import LoraConfig, get_peft_model
 
     hf_token = os.environ["HF_TOKEN"]
 
@@ -78,10 +80,7 @@ def train(dataset_jsonl: str):
     examples = [json.loads(line) for line in dataset_jsonl.strip().split("\n")]
     print(f"Loaded {len(examples)} training examples")
 
-    # Build full training texts: prompt + label (what the model should learn
-    # to generate after "Category:"). Track prompt lengths separately so we
-    # can mask them out of the loss - we only want the model learning to
-    # predict the category word, not reconstruct the incident text itself.
+    # Build full training texts: prompt + label
     prompts = [build_prompt(ex["text"]) for ex in examples]
     full_texts = [p + f" {ex['label']}" for p, ex in zip(prompts, examples)]
 
@@ -90,20 +89,12 @@ def train(dataset_jsonl: str):
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype=torch.bfloat16,
-        bnb_4bit_use_double_quant=True,
-    )
-
     model = AutoModelForCausalLM.from_pretrained(
         BASE_MODEL,
-        quantization_config=bnb_config,
-        device_map="auto",
+        torch_dtype=torch.bfloat16,
+        device_map="cpu",
         token=hf_token,
     )
-    model = prepare_model_for_kbit_training(model)
 
     lora_config = LoraConfig(
         r=16,
@@ -128,8 +119,7 @@ def train(dataset_jsonl: str):
             prompt_text = batch["prompt"][i]
             prompt_len = len(tokenizer(prompt_text, truncation=True, max_length=512)["input_ids"])
             ids = tokenized["input_ids"][i]
-            # Mask prompt tokens (-100 = ignored by loss) and padding tokens,
-            # so the model only learns to predict the category label itself.
+            # Mask prompt tokens (-100 = ignored by loss) and padding tokens
             label_row = [-100] * prompt_len + ids[prompt_len:]
             label_row = label_row[:len(ids)]
             label_row = [
@@ -140,25 +130,64 @@ def train(dataset_jsonl: str):
         tokenized["labels"] = labels
         return tokenized
 
-    dataset = Dataset.from_dict({"text": full_texts, "prompt": prompts})
-    # Small held-out eval split (80/20), given the small dataset size
-    split = dataset.train_test_split(test_size=0.2, seed=42)
-    train_ds = split["train"].map(tokenize_fn, batched=True, remove_columns=["text", "prompt"])
-    eval_ds = split["test"].map(tokenize_fn, batched=True, remove_columns=["text", "prompt"])
+    # Leak-proof source-level train/eval split:
+    # Group examples by their originating document or ticket ID so no two rows
+    # from the same source document land on opposite sides.
+    source_to_indices = defaultdict(list)
+    for idx, ex in enumerate(examples):
+        src_id = ex.get("source_id", f"src_{idx}")
+        source_to_indices[src_id].append(idx)
 
-    print(f"Train examples: {len(train_ds)}, Eval examples: {len(eval_ds)}")
+    sources = sorted(source_to_indices.keys())
+    rng = random.Random(42)
+    rng.shuffle(sources)
+
+    target_eval_count = int(len(examples) * 0.20)
+    eval_indices = []
+    train_indices = []
+
+    for src in sources:
+        indices = source_to_indices[src]
+        if len(eval_indices) + len(indices) <= target_eval_count:
+            eval_indices.extend(indices)
+        else:
+            train_indices.extend(indices)
+
+    if not eval_indices and len(sources) > 1:
+        eval_indices.extend(source_to_indices[sources[0]])
+        train_indices = [i for i in range(len(examples)) if i not in eval_indices]
+
+    train_sources = set(examples[i].get("source_id") for i in train_indices)
+    eval_sources = set(examples[i].get("source_id") for i in eval_indices)
+    overlap = train_sources.intersection(eval_sources)
+    assert len(overlap) == 0, f"Source leakage detected! Overlapping sources: {overlap}"
+
+    print(f"Leak-proof split confirmed: 0 source overlap.")
+    print(f"Train: {len(train_indices)} rows across {len(train_sources)} sources.")
+    print(f"Eval:  {len(eval_indices)} rows across {len(eval_sources)} sources.")
+
+    train_ds = Dataset.from_dict({
+        "text": [full_texts[i] for i in train_indices],
+        "prompt": [prompts[i] for i in train_indices],
+    }).map(tokenize_fn, batched=True, remove_columns=["text", "prompt"])
+
+    eval_ds = Dataset.from_dict({
+        "text": [full_texts[i] for i in eval_indices],
+        "prompt": [prompts[i] for i in eval_indices],
+    }).map(tokenize_fn, batched=True, remove_columns=["text", "prompt"])
 
     training_args = TrainingArguments(
         output_dir="/tmp/qlora_checkpoints",
-        num_train_epochs=8,
+        num_train_epochs=3,
         per_device_train_batch_size=4,
         per_device_eval_batch_size=4,
         gradient_accumulation_steps=2,
         learning_rate=2e-4,
-        logging_steps=5,
+        logging_steps=10,
         eval_strategy="epoch",
         save_strategy="no",
-        bf16=True,
+        use_cpu=True,
+        bf16=False,
         report_to="none",
     )
 
@@ -177,12 +206,14 @@ def train(dataset_jsonl: str):
     model.save_pretrained(ADAPTER_DIR)
     tokenizer.save_pretrained(ADAPTER_DIR)
 
-    # Save the exact eval split used, so evaluation later tests against the
-    # real held-out set rather than trying to reproduce this split separately
+    # Save the exact eval split used (with source_id tracking)
     eval_examples_raw = [
-        {"text": examples[i]["text"], "label": examples[i]["label"]}
-        for i in range(len(examples))
-        if full_texts[i] in split["test"]["text"]
+        {
+            "text": examples[i]["text"],
+            "label": examples[i]["label"],
+            "source_id": examples[i].get("source_id"),
+        }
+        for i in eval_indices
     ]
     with open(f"{ADAPTER_DIR}/eval_split.json", "w", encoding="utf-8") as f:
         json.dump(eval_examples_raw, f, indent=2)

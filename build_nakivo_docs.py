@@ -287,7 +287,13 @@ def build_docs():
             "content": item["content"].strip(),
             "source": "NAKIVO Help Center",
             "url": item["url"],
-            "metadata": {"category": item["category"], "platform": "nakivo/backup"},
+            "metadata": {
+                "category": item["category"],
+                "platform": "nakivo/backup",
+                "vendor": "nakivo",
+                "product": "backup-replication",
+                "doc_type": "knowledge-base",
+            },
         }
         path = os.path.join(out_dir, f"{item['id']}.json")
         with open(path, "w", encoding="utf-8") as f:
