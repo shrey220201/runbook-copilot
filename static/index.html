@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Runbook Copilot | AI On-Call Incident Assistant</title>
+  <meta name="description" content="AI-powered on-call assistant retrieving, synthesizing, and reasoning over runbooks with confidence-gated escalation." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Top Navigation -->
+    <header class="navbar">
+      <div class="nav-brand">
+        <div class="logo-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+          </svg>
+        </div>
+        <div>
+          <span class="brand-title">Runbook Copilot</span>
+          <span class="brand-subtitle">Autonomous SRE & Incident Triage</span>
+        </div>
+      </div>
+
+      <div class="nav-center">
+        <div class="mode-toggle-group">
+          <button id="mode-agent-btn" class="mode-btn active" data-mode="agent" title="Confidence-gated LangGraph agent with telemetry and safety rules">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span>Agent Orchestrator</span>
+            <span class="badge-mini">Gated</span>
+          </button>
+          <button id="mode-rag-btn" class="mode-btn" data-mode="rag" title="Direct semantic retrieval & LLM generation">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <span>Direct RAG</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="nav-right">
+        <div id="connection-status" class="status-pill status-connecting" title="Checking cluster and model status...">
+          <span class="status-dot"></span>
+          <span id="status-text">Connecting...</span>
+        </div>
+        <button id="btn-toggle-settings" class="icon-button" title="Configure Retrieval & Host Parameters">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Settings Drawer / Modal -->
+    <div id="settings-panel" class="settings-drawer hidden">
+      <div class="settings-header">
+        <h3>Pipeline Configuration</h3>
+        <button id="btn-close-settings" class="icon-button-close">&times;</button>
+      </div>
+      <div class="settings-body">
+        <div class="setting-item">
+          <label for="setting-source">Filter Knowledge Source</label>
+          <select id="setting-source" class="form-select">
+            <option value="All Sources">All Sources (Proxmox, NAKIVO, MS Learn, ServerFault)</option>
+            <option value="Proxmox VE Wiki">Proxmox VE Wiki</option>
+            <option value="NAKIVO Help Center">NAKIVO Help Center</option>
+            <option value="Microsoft Learn">Microsoft Learn</option>
+            <option value="ServerFault">ServerFault Q&A</option>
+          </select>
+          <span class="setting-desc">Scope retrieval to specific vendor documentation.</span>
+        </div>
+
+        <div class="setting-item">
+          <div class="label-with-val">
+            <label for="setting-topk">Top-K Chunks</label>
+            <span id="topk-val" class="slider-val">4</span>
+          </div>
+          <input type="range" id="setting-topk" min="1" max="10" value="4" class="form-range" />
+          <span class="setting-desc">Number of semantic context chunks retrieved from Qdrant.</span>
+        </div>
+
+        <div class="setting-item">
+          <label for="setting-host">Target Hostname</label>
+          <input type="text" id="setting-host" class="form-input" value="cluster-node-01" placeholder="e.g. cluster-node-01" />
+          <span class="setting-desc">Target host used to fetch live system telemetry.</span>
+        </div>
+
+        <div class="infra-summary-card">
+          <h4>Infrastructure Status</h4>
+          <div class="summary-grid">
+            <div class="summary-stat">
+              <span class="stat-label">Vector Database</span>
+              <span id="stat-qdrant" class="stat-value font-mono">Qdrant :6333</span>
+            </div>
+            <div class="summary-stat">
+              <span class="stat-label">Indexed Chunks</span>
+              <span id="stat-chunks" class="stat-value font-mono">874</span>
+            </div>
+            <div class="summary-stat">
+              <span class="stat-label">LLM Engine</span>
+              <span id="stat-ollama" class="stat-value font-mono">llama3.2:latest</span>
+            </div>
+            <div class="summary-stat">
+              <span class="stat-label">Confidence Gate</span>
+              <span class="stat-value font-mono">0.50 Threshold</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Workspace -->
+    <main class="main-content">
+      <!-- Chat Conversation Container -->
+      <section class="chat-viewport" id="chat-viewport">
+        <!-- Welcome Hero -->
+        <div id="welcome-hero" class="welcome-hero">
+          <div class="hero-badge">Incident Copilot Active</div>
+          <h1 class="hero-title">How can I assist your on-call triage?</h1>
+          <p class="hero-subtitle">
+            Query across 874 verified chunks from Proxmox, NAKIVO, Microsoft Learn, and ServerFault with confidence-gated safety guardrails and system telemetry.
+          </p>
+
+          <div class="quick-picks-container">
+            <div class="quick-picks-title">Quick Incident Prompts:</div>
+            <div class="quick-picks-grid">
+              <button class="quick-chip" data-query="How do I recover a Proxmox cluster from quorum loss?">
+                <span class="chip-badge proxmox">Proxmox</span>
+                <span class="chip-text">How do I recover a Proxmox cluster from quorum loss?</span>
+              </button>
+              <button class="quick-chip" data-query="How do I fix a NAKIVO transporter connection error?">
+                <span class="chip-badge nakivo">NAKIVO</span>
+                <span class="chip-text">How do I fix a NAKIVO transporter connection error?</span>
+              </button>
+              <button class="quick-chip" data-query="Active Directory replication fails with error 8453 replication access was denied">
+                <span class="chip-badge mslearn">MS Learn</span>
+                <span class="chip-text">AD replication fails with error 8453 access denied</span>
+              </button>
+              <button class="quick-chip" data-query="Nginx upstream timed out (110: Connection timed out) while reading response header from upstream">
+                <span class="chip-badge serverfault">ServerFault</span>
+                <span class="chip-text">Nginx 110 upstream timeout troubleshooting</span>
+              </button>
+              <button class="quick-chip danger" data-query="rm -rf /var/log to clear disk space immediately">
+                <span class="chip-badge danger">Safety Test</span>
+                <span class="chip-text">rm -rf /var/log to clear disk space (Trigger Gate)</span>
+              </button>
+              <button class="quick-chip warning" data-query="What is the capital city of France and its best museums?">
+                <span class="chip-badge warning">Confidence Test</span>
+                <span class="chip-text">Out-of-domain query (Triggers low confidence escalation)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat Stream -->
+        <div id="chat-stream" class="chat-stream"></div>
+      </section>
+
+      <!-- Bottom Query Input Bar -->
+      <footer class="input-container">
+        <div class="input-card">
+          <div class="input-bar-controls">
+            <div class="active-mode-indicator">
+              <span class="pulse-indicator"></span>
+              <span id="active-mode-label">Agent Mode (Safety-Gated)</span>
+            </div>
+            <button id="btn-clear-chat" class="btn-clear" title="Clear chat history">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              <span>Clear</span>
+            </button>
+          </div>
+          <form id="query-form" class="query-form">
+            <textarea
+              id="query-input"
+              class="query-textarea"
+              placeholder="Describe the incident, error code, or paste diagnostic log output... (Enter to send, Shift+Enter for new line)"
+              rows="2"
+              required
+            ></textarea>
+            <div class="form-actions">
+              <button type="submit" id="btn-submit" class="btn-primary" aria-label="Send Query">
+                <span class="btn-text">Run Copilot</span>
+                <svg class="btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"/>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+                <div class="loader-spinner hidden"></div>
+              </button>
+            </div>
+          </form>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
