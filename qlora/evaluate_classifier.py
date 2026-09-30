@@ -188,7 +188,8 @@ def main():
 
     print("Confusion Matrix (rows: True Label, cols: Predicted Label):")
     cols = CATEGORIES + ["unknown"]
-    header = f"{'True \\ Pred':20s} " + " ".join(f"{c[:8]:>8s}" for c in cols)
+    true_pred_label = "True \\ Pred"
+    header = f"{true_pred_label:20s} " + " ".join(f"{c[:8]:>8s}" for c in cols)
     print(header)
     for true_c in CATEGORIES:
         row = f"{true_c:20s} " + " ".join(f"{metrics['confusion_matrix'][true_c].get(pred_c, 0):>8d}" for pred_c in cols)
