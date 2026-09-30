@@ -1,17 +1,11 @@
 """
-Modal-based LoRA fine-tuning job for the Runbook Copilot incident
+Modal-based QLoRA fine-tuning job for the Runbook Copilot incident
 classifier. Trains unsloth/Llama-3.2-1B-Instruct (ungated mirror) to
 classify an incident description into one of 6 categories:
 active-directory, virtualization, networking, storage, backup, other.
 
 Training data: data/qlora_training/classifier_dataset.jsonl (339 examples,
 built from real ingested docs + a rebalanced 64-ticket synthetic seed).
-
-Note: this trains a full-precision LoRA adapter on CPU. It does not use
-4-bit quantization (QLoRA) — that requires a GPU, which requires a
-payment method on file with Modal. If/when GPU access is enabled, add
-BitsAndBytesConfig(load_in_4bit=True) and device_map="auto" for true
-QLoRA and a large training-time speedup.
 
 Usage:
     modal run --detach qlora/train_modal.py
@@ -31,7 +25,6 @@ app = modal.App("runbook-copilot-qlora")
 BASE_MODEL = "unsloth/Llama-3.2-1B-Instruct"
 CATEGORIES = ["active-directory", "virtualization", "networking", "storage", "backup", "other"]
 
-# Persistent volume to store the trained adapter
 volume = modal.Volume.from_name("runbook-copilot-adapter", create_if_missing=True)
 ADAPTER_DIR = "/adapter_output"
 
@@ -41,6 +34,7 @@ image = (
         "torch",
         "transformers>=4.44.0",
         "peft>=0.12.0",
+        "bitsandbytes>=0.43.0",
         "accelerate>=0.33.0",
         "datasets",
     )
@@ -59,7 +53,7 @@ def build_prompt(text: str) -> str:
 
 @app.function(
     image=image,
-    cpu=16,
+    gpu="A10G",
     memory=32768,
     timeout=3600,
     secrets=[modal.Secret.from_name("huggingface-token")],
@@ -73,19 +67,18 @@ def train(dataset_jsonl: str):
     from transformers import (
         AutoModelForCausalLM,
         AutoTokenizer,
+        BitsAndBytesConfig,
         TrainingArguments,
         Trainer,
         default_data_collator,
     )
-    from peft import LoraConfig, get_peft_model
+    from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 
     hf_token = os.environ["HF_TOKEN"]
 
-    # Parse the dataset passed in as a string (one JSON object per line)
     examples = [json.loads(line) for line in dataset_jsonl.strip().split("\n")]
     print(f"Loaded {len(examples)} training examples")
 
-    # Build full training texts: prompt + label
     prompts = [build_prompt(ex["text"]) for ex in examples]
     full_texts = [p + f" {ex['label']}" for p, ex in zip(prompts, examples)]
 
@@ -94,12 +87,20 @@ def train(dataset_jsonl: str):
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.bfloat16,
+        bnb_4bit_use_double_quant=True,
+    )
+
     model = AutoModelForCausalLM.from_pretrained(
         BASE_MODEL,
-        torch_dtype=torch.bfloat16,
-        device_map="cpu",
+        quantization_config=bnb_config,
+        device_map="auto",
         token=hf_token,
     )
+    model = prepare_model_for_kbit_training(model)
 
     lora_config = LoraConfig(
         r=16,
@@ -124,7 +125,6 @@ def train(dataset_jsonl: str):
             prompt_text = batch["prompt"][i]
             prompt_len = len(tokenizer(prompt_text, truncation=True, max_length=512)["input_ids"])
             ids = tokenized["input_ids"][i]
-            # Mask prompt tokens (-100 = ignored by loss) and padding tokens
             label_row = [-100] * prompt_len + ids[prompt_len:]
             label_row = label_row[:len(ids)]
             label_row = [
@@ -135,9 +135,6 @@ def train(dataset_jsonl: str):
         tokenized["labels"] = labels
         return tokenized
 
-    # Leak-proof source-level train/eval split:
-    # Group examples by their originating document or ticket ID so no two rows
-    # from the same source document land on opposite sides.
     source_to_indices = defaultdict(list)
     for idx, ex in enumerate(examples):
         src_id = ex.get("source_id", f"src_{idx}")
@@ -191,8 +188,7 @@ def train(dataset_jsonl: str):
         logging_steps=10,
         eval_strategy="epoch",
         save_strategy="no",
-        use_cpu=True,
-        bf16=False,
+        bf16=True,
         report_to="none",
     )
 
@@ -211,7 +207,6 @@ def train(dataset_jsonl: str):
     model.save_pretrained(ADAPTER_DIR)
     tokenizer.save_pretrained(ADAPTER_DIR)
 
-    # Save the exact eval split used (with source_id tracking)
     eval_examples_raw = [
         {
             "text": examples[i]["text"],
