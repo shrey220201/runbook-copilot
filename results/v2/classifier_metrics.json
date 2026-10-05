@@ -1,0 +1,665 @@
+{
+  "accuracy": 0.8657,
+  "total_examples": 67,
+  "correct_predictions": 58,
+  "macro_avg": {
+    "precision": 0.9346,
+    "recall": 0.8601,
+    "f1": 0.8834
+  },
+  "weighted_avg": {
+    "precision": 0.9014,
+    "recall": 0.8657,
+    "f1": 0.8684
+  },
+  "per_class_metrics": {
+    "active-directory": {
+      "true_positives": 6,
+      "false_positives": 0,
+      "false_negatives": 2,
+      "precision": 1.0,
+      "recall": 0.75,
+      "f1": 0.8571,
+      "support": 8
+    },
+    "virtualization": {
+      "true_positives": 16,
+      "false_positives": 8,
+      "false_negatives": 1,
+      "precision": 0.6667,
+      "recall": 0.9412,
+      "f1": 0.7805,
+      "support": 17
+    },
+    "networking": {
+      "true_positives": 7,
+      "false_positives": 0,
+      "false_negatives": 3,
+      "precision": 1.0,
+      "recall": 0.7,
+      "f1": 0.8235,
+      "support": 10
+    },
+    "storage": {
+      "true_positives": 16,
+      "false_positives": 1,
+      "false_negatives": 0,
+      "precision": 0.9412,
+      "recall": 1.0,
+      "f1": 0.9697,
+      "support": 16
+    },
+    "backup": {
+      "true_positives": 10,
+      "false_positives": 0,
+      "false_negatives": 3,
+      "precision": 1.0,
+      "recall": 0.7692,
+      "f1": 0.8696,
+      "support": 13
+    },
+    "other": {
+      "true_positives": 3,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 3
+    }
+  },
+  "confusion_matrix": {
+    "active-directory": {
+      "active-directory": 6,
+      "virtualization": 2,
+      "networking": 0,
+      "storage": 0,
+      "backup": 0,
+      "other": 0,
+      "unknown": 0
+    },
+    "virtualization": {
+      "active-directory": 0,
+      "virtualization": 16,
+      "networking": 0,
+      "storage": 1,
+      "backup": 0,
+      "other": 0,
+      "unknown": 0
+    },
+    "networking": {
+      "active-directory": 0,
+      "virtualization": 3,
+      "networking": 7,
+      "storage": 0,
+      "backup": 0,
+      "other": 0,
+      "unknown": 0
+    },
+    "storage": {
+      "active-directory": 0,
+      "virtualization": 0,
+      "networking": 0,
+      "storage": 16,
+      "backup": 0,
+      "other": 0,
+      "unknown": 0
+    },
+    "backup": {
+      "active-directory": 0,
+      "virtualization": 3,
+      "networking": 0,
+      "storage": 0,
+      "backup": 10,
+      "other": 0,
+      "unknown": 0
+    },
+    "other": {
+      "active-directory": 0,
+      "virtualization": 0,
+      "networking": 0,
+      "storage": 0,
+      "backup": 0,
+      "other": 3,
+      "unknown": 0
+    }
+  },
+  "results": [
+    {
+      "text": "A Proxmox Ceph cluster health displays warning 'HEALTH_WARN: 1 osds down; 1 pgs ",
+      "true_label": "storage",
+      "predicted_raw": "storage\n\nnote: this is",
+      "predicted_label": "storage",
+      "correct": true,
+      "source_id": "stg-006"
+    },
+    {
+      "text": "Production Incident #STG-006: A Proxmox Ceph cluster health displays warning 'HE",
+      "true_label": "storage",
+      "predicted_raw": "storage\n\nnote: this incident",
+      "predicted_label": "storage",
+      "correct": true,
+      "source_id": "stg-006"
+    },
+    {
+      "text": "Alert - Severity 2: A Proxmox Ceph cluster health displays warning 'HEALTH_WARN:",
+      "true_label": "storage",
+      "predicted_raw": "storage\n\nnote: this incident",
+      "predicted_label": "storage",
+      "correct": true,
+      "source_id": "stg-006"
+    },
+    {
+      "text": "ServerFault: Should I still have a physical DC, even post-Server 2012?. # Server",
+      "true_label": "active-directory",
+      "predicted_raw": "virtualization\n\nincident:",
+      "predicted_label": "virtualization",
+      "correct": false,
+      "source_id": "serverfault-680559"
+    },
+    {
+      "text": "ServerFault: Should I still have a physical DC, even post-Server 2012? - Symptom",
+      "true_label": "active-directory",
+      "predicted_raw": "virtualization.",
+      "predicted_label": "virtualization",
+      "correct": false,
+      "source_id": "serverfault-680559"
+    },
+    {
+      "text": "Following a server motherboard and CPU replacement, a Hyper-V host fails to star",
+      "true_label": "virtualization",
+      "predicted_raw": "virtualization\n\nincident:",
+      "predicted_label": "virtualization",
+      "correct": true,
+      "source_id": "vm-008"
+    },
+    {
+      "text": "Production Incident #VM-008: Following a server motherboard and CPU replacement,",
+      "true_label": "virtualization",
+      "predicted_raw": "virtualization\n\nnote: this",
+      "predicted_label": "virtualization",
+      "correct": true,
+      "source_id": "vm-008"
+    },
+    {
+      "text": "Alert - Severity 2: Following a server motherboard and CPU replacement, a Hyper-",
+      "true_label": "virtualization",
+      "predicted_raw": "virtualization\n\nnote: this",
+      "predicted_label": "virtualization",
+      "correct": true,
+      "source_id": "vm-008"
+    },
+    {
+      "text": "An aging domain controller holding the RID Master and Schema Master FSMO roles s",
+      "true_label": "active-directory",
+      "predicted_raw": "active-directory\n\nnote: this",
+      "predicted_label": "active-directory",
+      "correct": true,
+      "source_id": "ad-010"
+    },
+    {
+      "text": "Production Incident #AD-010: An aging domain controller holding the RID Master a",
+      "true_label": "active-directory",
+      "predicted_raw": "active-directory\n\nnote: this",
+      "predicted_label": "active-directory",
+      "correct": true,
+      "source_id": "ad-010"
+    },
+    {
+      "text": "Alert - Severity 2: An aging domain controller holding the RID Master and Schema",
+      "true_label": "active-directory",
+      "predicted_raw": "active-directory\n\nnote: this",
+      "predicted_label": "active-directory",
+      "correct": true,
+      "source_id": "ad-010"
+    },
+    {
+      "text": "Virtual machines running on a Hyper-V host experience random I/O freezing and sl",
+      "true_label": "virtualization",
+      "predicted_raw": "virtualization\n\nincident:",
+      "predicted_label": "virtualization",
+      "correct": true,
+      "source_id": "vm-003"
+    },
+    {
+      "text": "Production Incident #VM-003: Virtual machines running on a Hyper-V host experien",
+      "true_label": "virtualization",
+      "predicted_raw": "virtualization. \n\nnote:",
+      "predicted_label": "virtualization",
+      "correct": true,
+      "source_id": "vm-003"
+    },
+    {
+      "text": "Alert - Severity 2: Virtual machines running on a Hyper-V host experience random",
+      "true_label": "virtualization",
+      "predicted_raw": "virtualization\n\nnote: this",
+      "predicted_label": "virtualization",
+      "correct": true,
+      "source_id": "vm-003"
+    },
+    {
+      "text": "NAKIVO Backup & Replication Director fails to load tenants and job histories aft",
+      "true_label": "backup",
+      "predicted_raw": "backup, other.",
+      "predicted_label": "backup",
+      "correct": true,
+      "source_id": "bk-006"
+    },
+    {
+      "text": "Production Incident #BK-006: NAKIVO Backup & Replication Director fails to load ",
+      "true_label": "backup",
+      "predicted_raw": "backup, other. note:",
+      "predicted_label": "backup",
+      "correct": true,
+      "source_id": "bk-006"
+    },
+    {
+      "text": "Alert - Severity 2: NAKIVO Backup & Replication Director fails to load tenants a",
+      "true_label": "backup",
+      "predicted_raw": "backup, other.",
+      "predicted_label": "backup",
+      "correct": true,
+      "source_id": "bk-006"
+    },
+    {
+      "text": "ServerFault: How does IPv4 Subnetting Work?. # ServerFault: How does IPv4 Subnet",
+      "true_label": "networking",
+      "predicted_raw": "networking\n\nincident: cisco",
+      "predicted_label": "networking",
+      "correct": true,
+      "source_id": "serverfault-49765"
+    },
+    {
+      "text": "ServerFault: How does IPv4 Subnetting Work? - Symptom & Diagnostic: **How does S",
+      "true_label": "networking",
+      "predicted_raw": "networking. \n\nincident:",
+      "predicted_label": "networking",
+      "correct": true,
+      "source_id": "serverfault-49765"
+    },
+    {
+      "text": "ServerFault: FIO Benchmarking - Inconsistent and Slower than Anticipated: Are my",
+      "true_label": "storage",
+      "predicted_raw": "storage\n\nincident: server",
+      "predicted_label": "storage",
+      "correct": true,
+      "source_id": "serverfault-1021251"
+    },
+    {
+      "text": "ServerFault: FIO Benchmarking - Inconsistent and Slower than Anticipated: Are my",
+      "true_label": "storage",
+      "predicted_raw": "storage.",
+      "predicted_label": "storage",
+      "correct": true,
+      "source_id": "serverfault-1021251"
+    },
+    {
+      "text": "NAKIVO: Troubleshooting External Database Connection Issues. # NAKIVO: Troublesh",
+      "true_label": "backup",
+      "predicted_raw": "backup, replication\n\n### note",
+      "predicted_label": "backup",
+      "correct": true,
+      "source_id": "nakivo-external-database-connection-issues"
+    },
+    {
+      "text": "NAKIVO: Troubleshooting External Database Connection Issues - Symptom & Diagnost",
+      "true_label": "backup",
+      "predicted_raw": "backup\n\nincident: n",
+      "predicted_label": "backup",
+      "correct": true,
+      "source_id": "nakivo-external-database-connection-issues"
+    },
+    {
+      "text": "ServerFault: I've inherited a rat's nest of cabling. What now?. # ServerFault: I",
+      "true_label": "networking",
+      "predicted_raw": "networking\n\nincident: c",
+      "predicted_label": "networking",
+      "correct": true,
+      "source_id": "serverfault-420877"
+    },
+    {
+      "text": "ServerFault: I've inherited a rat's nest of cabling. What now? - Symptom & Diagn",
+      "true_label": "networking",
+      "predicted_raw": "networking. \n\nincident:",
+      "predicted_label": "networking",
+      "correct": true,
+      "source_id": "serverfault-420877"
+    },
+    {
+      "text": "A batch of Event ID 4780 entries is repeatedly logged on the primary domain cont",
+      "true_label": "active-directory",
+      "predicted_raw": "active-directory\n\nincident:",
+      "predicted_label": "active-directory",
+      "correct": true,
+      "source_id": "ad-002"
+    },
+    {
+      "text": "Production Incident #AD-002: A batch of Event ID 4780 entries is repeatedly logg",
+      "true_label": "active-directory",
+      "predicted_raw": "active-directory\n\nincident:",
+      "predicted_label": "active-directory",
+      "correct": true,
+      "source_id": "ad-002"
+    },
+    {
+      "text": "Alert - Severity 2: A batch of Event ID 4780 entries is repeatedly logged on the",
+      "true_label": "active-directory",
+      "predicted_raw": "active-directory\n\nincident:",
+      "predicted_label": "active-directory",
+      "correct": true,
+      "source_id": "ad-002"
+    },
+    {
+      "text": "Migrating an LXC container from a standalone Proxmox node to a cluster node fail",
+      "true_label": "virtualization",
+      "predicted_raw": "virtualization\n\nnote: this",
+      "predicted_label": "virtualization",
+      "correct": true,
+      "source_id": "vm-002"
+    },
+    {
+      "text": "Production Incident #VM-002: Migrating an LXC container from a standalone Proxmo",
+      "true_label": "virtualization",
+      "predicted_raw": "virtualization\n\nnote: this",
+      "predicted_label": "virtualization",
+      "correct": true,
+      "source_id": "vm-002"
+    },
+    {
+      "text": "Alert - Severity 2: Migrating an LXC container from a standalone Proxmox node to",
+      "true_label": "virtualization",
+      "predicted_raw": "virtualization\n\nnote: this",
+      "predicted_label": "virtualization",
+      "correct": true,
+      "source_id": "vm-002"
+    },
+    {
+      "text": "ServerFault: Windows 2019: can't figure out why my drive is full. # ServerFault:",
+      "true_label": "storage",
+      "predicted_raw": "storage\n\nincident: c",
+      "predicted_label": "storage",
+      "correct": true,
+      "source_id": "serverfault-1031988"
+    },
+    {
+      "text": "ServerFault: Windows 2019: can't figure out why my drive is full - Symptom & Dia",
+      "true_label": "storage",
+      "predicted_raw": "storage.",
+      "predicted_label": "storage",
+      "correct": true,
+      "source_id": "serverfault-1031988"
+    },
+    {
+      "text": "Virtual machines connected to the internal bridge vmbr1 on a Proxmox VE server c",
+      "true_label": "networking",
+      "predicted_raw": "virtualization. \n\nnote:",
+      "predicted_label": "virtualization",
+      "correct": false,
+      "source_id": "net-002"
+    },
+    {
+      "text": "Production Incident #NET-002: Virtual machines connected to the internal bridge ",
+      "true_label": "networking",
+      "predicted_raw": "virtualization. \n\nnote:",
+      "predicted_label": "virtualization",
+      "correct": false,
+      "source_id": "net-002"
+    },
+    {
+      "text": "Alert - Severity 2: Virtual machines connected to the internal bridge vmbr1 on a",
+      "true_label": "networking",
+      "predicted_raw": "virtualization. \n\nnote:",
+      "predicted_label": "virtualization",
+      "correct": false,
+      "source_id": "net-002"
+    },
+    {
+      "text": "Client computers inside the corporate network can resolve internal server names ",
+      "true_label": "networking",
+      "predicted_raw": "networking\n\nnote: this incident",
+      "predicted_label": "networking",
+      "correct": true,
+      "source_id": "net-010"
+    },
+    {
+      "text": "Production Incident #NET-010: Client computers inside the corporate network can ",
+      "true_label": "networking",
+      "predicted_raw": "networking\n\nnote: this incident",
+      "predicted_label": "networking",
+      "correct": true,
+      "source_id": "net-010"
+    },
+    {
+      "text": "Alert - Severity 2: Client computers inside the corporate network can resolve in",
+      "true_label": "networking",
+      "predicted_raw": "networking\n\nnote: this incident",
+      "predicted_label": "networking",
+      "correct": true,
+      "source_id": "net-010"
+    },
+    {
+      "text": "A QNAP NAS volume unexpectedly enters a read-only state after a snapshot deletio",
+      "true_label": "storage",
+      "predicted_raw": "storage\n\nnote: this incident",
+      "predicted_label": "storage",
+      "correct": true,
+      "source_id": "qnap-004"
+    },
+    {
+      "text": "Production Incident #QNAP-004: A QNAP NAS volume unexpectedly enters a read-only",
+      "true_label": "storage",
+      "predicted_raw": "storage\n\nnote: this incident",
+      "predicted_label": "storage",
+      "correct": true,
+      "source_id": "qnap-004"
+    },
+    {
+      "text": "Alert - Severity 2: A QNAP NAS volume unexpectedly enters a read-only state afte",
+      "true_label": "storage",
+      "predicted_raw": "storage\n\nnote: this incident",
+      "predicted_label": "storage",
+      "correct": true,
+      "source_id": "qnap-004"
+    },
+    {
+      "text": "ServerFault: What's the difference between import virtual machines types in Hype",
+      "true_label": "virtualization",
+      "predicted_raw": "virtualization. ## question (",
+      "predicted_label": "virtualization",
+      "correct": true,
+      "source_id": "serverfault-585663"
+    },
+    {
+      "text": "ServerFault: What's the difference between import virtual machines types in Hype",
+      "true_label": "virtualization",
+      "predicted_raw": "virtualization. \n\nincident",
+      "predicted_label": "virtualization",
+      "correct": true,
+      "source_id": "serverfault-585663"
+    },
+    {
+      "text": "Recommended antivirus exclusions for Hyper-V hosts. # Recommended antivirus excl",
+      "true_label": "virtualization",
+      "predicted_raw": "virtualization\n\nincident:",
+      "predicted_label": "virtualization",
+      "correct": true,
+      "source_id": "mslearn-hyperv-antivirus-exclusions"
+    },
+    {
+      "text": "Recommended antivirus exclusions for Hyper-V hosts - Symptom & Diagnostic: shoul",
+      "true_label": "virtualization",
+      "predicted_raw": "virtualization.",
+      "predicted_label": "virtualization",
+      "correct": true,
+      "source_id": "mslearn-hyperv-antivirus-exclusions"
+    },
+    {
+      "text": "A host-level VSS backup of a critical Hyper-V virtual machine fails with error '",
+      "true_label": "backup",
+      "predicted_raw": "virtualization\n\nnote: this",
+      "predicted_label": "virtualization",
+      "correct": false,
+      "source_id": "bk-008"
+    },
+    {
+      "text": "Production Incident #BK-008: A host-level VSS backup of a critical Hyper-V virtu",
+      "true_label": "backup",
+      "predicted_raw": "virtualization\n\nnote: this",
+      "predicted_label": "virtualization",
+      "correct": false,
+      "source_id": "bk-008"
+    },
+    {
+      "text": "Alert - Severity 2: A host-level VSS backup of a critical Hyper-V virtual machin",
+      "true_label": "backup",
+      "predicted_raw": "virtualization\n\nnote: this",
+      "predicted_label": "virtualization",
+      "correct": false,
+      "source_id": "bk-008"
+    },
+    {
+      "text": "Disk benchmarks using FIO on a hardware RAID 10 array show throughput crashing f",
+      "true_label": "storage",
+      "predicted_raw": "storage\n\nnote: this incident",
+      "predicted_label": "storage",
+      "correct": true,
+      "source_id": "stg-003"
+    },
+    {
+      "text": "Production Incident #STG-003: Disk benchmarks using FIO on a hardware RAID 10 ar",
+      "true_label": "storage",
+      "predicted_raw": "storage\n\nnote: this incident",
+      "predicted_label": "storage",
+      "correct": true,
+      "source_id": "stg-003"
+    },
+    {
+      "text": "Alert - Severity 2: Disk benchmarks using FIO on a hardware RAID 10 array show t",
+      "true_label": "storage",
+      "predicted_raw": "storage\n\nnote: this incident",
+      "predicted_label": "storage",
+      "correct": true,
+      "source_id": "stg-003"
+    },
+    {
+      "text": "A backup repository reaches 99% capacity and alarms trigger, but automated reten",
+      "true_label": "backup",
+      "predicted_raw": "backup\n\nnote: this incident",
+      "predicted_label": "backup",
+      "correct": true,
+      "source_id": "bk-011"
+    },
+    {
+      "text": "Production Incident #BK-011: A backup repository reaches 99% capacity and alarms",
+      "true_label": "backup",
+      "predicted_raw": "backup.",
+      "predicted_label": "backup",
+      "correct": true,
+      "source_id": "bk-011"
+    },
+    {
+      "text": "Alert - Severity 2: A backup repository reaches 99% capacity and alarms trigger,",
+      "true_label": "backup",
+      "predicted_raw": "backup\n\nnote: this incident",
+      "predicted_label": "backup",
+      "correct": true,
+      "source_id": "bk-011"
+    },
+    {
+      "text": "My monitor is flickering whenever I adjust the height of my standing desk.",
+      "true_label": "other",
+      "predicted_raw": "other\n\nincident: how",
+      "predicted_label": "other",
+      "correct": true,
+      "source_id": "oth-004"
+    },
+    {
+      "text": "User helpdesk inquiry: My monitor is flickering whenever I adjust the height of ",
+      "true_label": "other",
+      "predicted_raw": "other\n\nincident: how",
+      "predicted_label": "other",
+      "correct": true,
+      "source_id": "oth-004"
+    },
+    {
+      "text": "Incoming support message: My monitor is flickering whenever I adjust the height ",
+      "true_label": "other",
+      "predicted_raw": "other\n\nincident: incoming",
+      "predicted_label": "other",
+      "correct": true,
+      "source_id": "oth-004"
+    },
+    {
+      "text": "Virtual machine backup storage mounted via NFS on Proxmox nodes experiences inte",
+      "true_label": "storage",
+      "predicted_raw": "storage\n\nnote: this incident",
+      "predicted_label": "storage",
+      "correct": true,
+      "source_id": "stg-007"
+    },
+    {
+      "text": "Production Incident #STG-007: Virtual machine backup storage mounted via NFS on ",
+      "true_label": "storage",
+      "predicted_raw": "storage\n\nnote: this incident",
+      "predicted_label": "storage",
+      "correct": true,
+      "source_id": "stg-007"
+    },
+    {
+      "text": "Alert - Severity 2: Virtual machine backup storage mounted via NFS on Proxmox no",
+      "true_label": "storage",
+      "predicted_raw": "storage\n\nnote: this incident",
+      "predicted_label": "storage",
+      "correct": true,
+      "source_id": "stg-007"
+    },
+    {
+      "text": "Can't access Hyper-V virtual machines via VMConnect. # Can't access Hyper-V virt",
+      "true_label": "virtualization",
+      "predicted_raw": "virtualization\n\nincident:",
+      "predicted_label": "virtualization",
+      "correct": true,
+      "source_id": "mslearn-hyperv-cannot-access-vmconnect"
+    },
+    {
+      "text": "Can't access Hyper-V virtual machines via VMConnect - Symptom & Diagnostic: tive",
+      "true_label": "virtualization",
+      "predicted_raw": "virtualization\n\nincident:",
+      "predicted_label": "virtualization",
+      "correct": true,
+      "source_id": "mslearn-hyperv-cannot-access-vmconnect"
+    },
+    {
+      "text": "Proxmox VE: Proxmox Cluster File System (pmxcfs). # Proxmox VE: Proxmox Cluster ",
+      "true_label": "virtualization",
+      "predicted_raw": "storage\n\nincident: storage",
+      "predicted_label": "storage",
+      "correct": false,
+      "source_id": "proxmox-cluster-filesystem-pmxcfs"
+    },
+    {
+      "text": "Proxmox VE: Proxmox Cluster File System (pmxcfs) - Symptom & Diagnostic: t datab",
+      "true_label": "virtualization",
+      "predicted_raw": "virtualization.",
+      "predicted_label": "virtualization",
+      "correct": true,
+      "source_id": "proxmox-cluster-filesystem-pmxcfs"
+    },
+    {
+      "text": "NAKIVO: Transporter Connection Lost During Backup Job. # NAKIVO: Transporter Con",
+      "true_label": "backup",
+      "predicted_raw": "backup\n\nincident: sym",
+      "predicted_label": "backup",
+      "correct": true,
+      "source_id": "nakivo-transporter-connection-lost"
+    },
+    {
+      "text": "NAKIVO: Transporter Connection Lost During Backup Job - Symptom & Diagnostic: so",
+      "true_label": "backup",
+      "predicted_raw": "backup\n\nincident: sym",
+      "predicted_label": "backup",
+      "correct": true,
+      "source_id": "nakivo-transporter-connection-lost"
+    }
+  ]
+}
