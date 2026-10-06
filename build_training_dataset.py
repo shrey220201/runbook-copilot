@@ -39,17 +39,17 @@ CATEGORY_MAP = {
     "Hyper-V Virtualization": "virtualization",
     "Networking & DNS": "networking",
     "Backup & Disaster Recovery": "backup",
-    "Cluster Filesystem": "virtualization",
-    "Cluster & Corosync": "virtualization",
+    "Cluster Filesystem": "storage",       # pmxcfs is a distributed config store, not VM-specific
+    "Cluster & Corosync": "networking",    # heartbeat/quorum communication layer, not VM-specific
     "Storage & Hardware": "storage",
     "Firewall & Security": "networking",
-    "High Availability": "virtualization",
+    "High Availability": "virtualization", # genuinely about migrating/restarting VMs - stays
     "Virtual Machines (KVM)": "virtualization",
     "LXC Containers": "virtualization",
     "Networking": "networking",
     "Cluster Networking": "networking",
     "Storage": "storage",
-    "General Troubleshooting": "virtualization",
+    "General Troubleshooting": "other",    # generic catch-all, shouldn't default to virtualization
     "ZFS Storage": "storage",
 }
 
