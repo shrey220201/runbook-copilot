@@ -13,7 +13,46 @@ from rag.llm import llm_client
 from agent.tools import search_runbooks, check_system_status, escalate_to_human
 
 # Deterministic safety gate keywords
-DESTRUCTIVE_KEYWORDS = ["delete", "drop", "rm -rf", "format", "wipe", "destroy"]
+# Stems, not dictionary forms, for words with a silent trailing "e" - matching
+# "delete" as a literal substring misses "deleting" (the "e" drops before
+# "-ing": delete -> deleting, not delete+ing). Using the stem ("delet",
+# "wip", "purg", "eras") catches every inflected form in one regex instead
+# of enumerating each tense separately.
+DESTRUCTIVE_KEYWORDS = ["delet", "drop", "rm -rf", "format", "wip", "destroy", "purg", "eras"]
+
+# Multi-word destructive phrases, checked as substrings rather than word-boundary
+# regex, since phrases like "zero out" do not tokenize cleanly as a single word.
+DESTRUCTIVE_PHRASES = ["zero out", "zero the drives", "factory reset"]
+
+# Prompt-injection patterns: phrases attempting to override system instructions
+# or claim unearned authority to bypass safety gating. Pattern-based and not
+# exhaustive - a broader, actively-maintained list or an LLM-based intent
+# classifier would be the production-grade version (see README Limitations).
+INJECTION_PATTERNS = [
+    r"ignore (your|the) (system prompt|previous instructions|safety guidelines)",
+    r"unrestricted mode",
+    r"i'?m the (system )?administrator",
+    r"i am the (system )?administrator",
+    r"skip (any|the) warnings",
+    r"full authorization",
+    r"disregard (your|the) (instructions|guidelines|rules)",
+]
+
+# Domain vocabulary used for the vague-query heuristic: a short query with no
+# recognizable technical term lacks enough context to safely answer, so it
+# routes to a human instead of the agent guessing at intent.
+DOMAIN_TERMS = [
+    "active directory", "domain controller", " ad ", "group policy", "gpo",
+    "dns", "dhcp", "hyper-v", "hyperv", "vm", "virtual machine",
+    "proxmox", "pve", "lxc", "container", "nakivo", "backup", "replication",
+    "repository", "transporter", "qnap", "nas", "raid", "volume", "snapshot",
+    "storage", "disk", "ssd", "hdd", "cisco", "router", "switch", "vlan",
+    "firewall", "network", "cluster", "quorum", "corosync", "server",
+    "database", "service", "certificate", "authentication", "cifs", "smb",
+    "nfs", "ntfs", "acl", "permission",
+]
+VAGUE_WORD_COUNT_THRESHOLD = 10
+
 CONFIDENCE_THRESHOLD = 0.50
 
 
@@ -30,28 +69,62 @@ class AgentState(TypedDict, total=False):
     escalation_result: Optional[Dict[str, Any]]
 
 
-def check_destructive_action(query: str) -> Optional[str]:
-    """Check query against predefined destructive action keywords."""
+def check_prompt_injection(query: str) -> Optional[str]:
+    """Check query against known prompt-injection / authority-override patterns."""
     query_lower = query.lower()
+    for pattern in INJECTION_PATTERNS:
+        if re.search(pattern, query_lower):
+            return pattern
+    return None
+
+
+def check_destructive_action(query: str) -> Optional[str]:
+    """Check query against destructive action keywords and multi-word phrases."""
+    query_lower = query.lower()
+
+    for phrase in DESTRUCTIVE_PHRASES:
+        if phrase in query_lower:
+            return phrase
+
     for kw in DESTRUCTIVE_KEYWORDS:
         if kw == "rm -rf":
             if "rm -rf" in query_lower or "rm  -rf" in query_lower:
                 return kw
         else:
-            # Word boundary check for standard single words
-            pattern = rf"\b{re.escape(kw)}\b"
+            # Prefix match on word boundary, not exact-word match, so
+            # inflected forms (erasing, deleted, wiping, destroyed) are
+            # still caught, not just the dictionary form of the verb.
+            pattern = rf"\b{re.escape(kw)}\w*"
             if re.search(pattern, query_lower):
                 return kw
     return None
 
 
+def check_vague_query(query: str) -> bool:
+    """Flag queries that are both short and lack any recognizable domain term."""
+    query_lower = f" {query.lower()} "
+    word_count = len(query.split())
+    has_domain_term = any(term in query_lower for term in DOMAIN_TERMS)
+    return word_count < VAGUE_WORD_COUNT_THRESHOLD and not has_domain_term
+
+
 def classify_confidence_and_retrieve(state: AgentState) -> Dict[str, Any]:
-    """Deterministic classification node: checks destructive keywords and retrieval confidence."""
+    """Deterministic classification node: checks injection patterns, destructive
+    keywords, query vagueness, and retrieval confidence, in that order."""
     query = state.get("query", "")
     top_k = state.get("top_k", 4)
     source_filter = state.get("source_filter")
 
-    # 1. Safety rule check: Destructive commands immediately escalate
+    # 1. Prompt injection check - highest priority, before any other logic
+    injection_match = check_prompt_injection(query)
+    if injection_match:
+        return {
+            "retrieved_chunks": [],
+            "is_escalated": True,
+            "escalation_reason": "Possible prompt injection or authority-override attempt detected",
+        }
+
+    # 2. Safety rule check: Destructive commands immediately escalate
     destructive_match = check_destructive_action(query)
     if destructive_match:
         return {
@@ -60,14 +133,22 @@ def classify_confidence_and_retrieve(state: AgentState) -> Dict[str, Any]:
             "escalation_reason": f"Destructive action keyword detected: '{destructive_match}'",
         }
 
-    # 2. Retrieve candidate chunks using search_runbooks tool
+    # 3. Vagueness check: too little context to safely answer
+    if check_vague_query(query):
+        return {
+            "retrieved_chunks": [],
+            "is_escalated": True,
+            "escalation_reason": "Query too vague or ambiguous - insufficient technical context to safely answer",
+        }
+
+    # 4. Retrieve candidate chunks using search_runbooks tool
     chunks = search_runbooks(
         query=query,
         top_k=top_k,
         source_filter=source_filter,
     )
 
-    # 3. Confidence rule check: Low score or empty chunks trigger escalation
+    # 5. Confidence rule check: Low score or empty chunks trigger escalation
     if not chunks:
         return {
             "retrieved_chunks": [],
