@@ -25,10 +25,15 @@ EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "BAAI/bge-large-en-v1.5
 # it silently, since os.getenv only falls back to the default when the var is
 # completely unset, not when it holds an unexpected value.
 #
-# Default is localhost rather than a hardcoded LAN IP - a prior default of
-# 192.168.2.47 went stale after a DHCP address change and silently broke any
-# code path reaching the LLM, undetected until chaos-eval testing exercised
-# it directly. localhost is immune to that class of drift since Ollama binds
-# to 0.0.0.0, which is reachable via localhost regardless of the LAN IP.
-OLLAMA_HOST = os.getenv("RUNBOOK_OLLAMA_HOST", "http://localhost:11434")
+# Default now points at a Modal-hosted, GPU-backed Ollama instance
+# (deploy/ollama_modal.py) rather than localhost - CPU generation was the
+# dominant latency bottleneck in local testing. Set RUNBOOK_OLLAMA_HOST to
+# http://localhost:11434 (and leave RUNBOOK_OLLAMA_AUTH_TOKEN empty) to run
+# fully local instead, with no cloud dependency or cost.
+OLLAMA_HOST = os.getenv("RUNBOOK_OLLAMA_HOST", "https://shrey6131--runbook-copilot-ollama-serve.modal.run")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:latest")
+
+# Bearer token sent with every request to the Modal-hosted Ollama endpoint
+# (deploy/ollama_modal.py enforces this). Empty string is fine for a plain
+# local Ollama instance, which has no auth layer.
+OLLAMA_AUTH_TOKEN = os.getenv("RUNBOOK_OLLAMA_AUTH_TOKEN", "")

@@ -4,12 +4,12 @@ from typing import Generator, List, Dict, Any, Optional
 import requests
 import json
 
-from config import OLLAMA_HOST, OLLAMA_MODEL
+from config import OLLAMA_HOST, OLLAMA_MODEL, OLLAMA_AUTH_TOKEN
 
 
 class LLMClient:
     """Client for interacting with the LLM backend (Ollama).
-    
+
     Acts as a centralized abstraction layer so switching models or providers
     does not affect retriever or query pipeline logic.
     """
@@ -19,10 +19,17 @@ class LLMClient:
         host: Optional[str] = None,
         model: Optional[str] = None,
         timeout: int = 600,
+        auth_token: Optional[str] = None,
     ):
         self.host = (host or OLLAMA_HOST).rstrip("/")
         self.model = model or OLLAMA_MODEL
         self.timeout = timeout
+
+        # Bearer token for the Modal-hosted Ollama endpoint (deploy/ollama_modal.py).
+        # Empty/unset when pointed at a plain local Ollama instance, which has
+        # no auth layer of its own - the header is simply omitted in that case.
+        token = auth_token if auth_token is not None else OLLAMA_AUTH_TOKEN
+        self._headers = {"Authorization": f"Bearer {token}"} if token else {}
 
     def generate(
         self,
@@ -45,7 +52,7 @@ class LLMClient:
         if system:
             payload["system"] = system
 
-        response = requests.post(url, json=payload, timeout=self.timeout)
+        response = requests.post(url, json=payload, headers=self._headers, timeout=self.timeout)
         response.raise_for_status()
         data = response.json()
         return data.get("response", "")
@@ -69,7 +76,7 @@ class LLMClient:
             },
         }
 
-        response = requests.post(url, json=payload, timeout=self.timeout)
+        response = requests.post(url, json=payload, headers=self._headers, timeout=self.timeout)
         response.raise_for_status()
         data = response.json()
         return data.get("message", {}).get("content", "")
@@ -93,7 +100,7 @@ class LLMClient:
             },
         }
 
-        with requests.post(url, json=payload, timeout=self.timeout, stream=True) as response:
+        with requests.post(url, json=payload, headers=self._headers, timeout=self.timeout, stream=True) as response:
             response.raise_for_status()
             for line in response.iter_lines():
                 if line:
