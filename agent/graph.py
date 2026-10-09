@@ -61,6 +61,7 @@ class AgentState(TypedDict, total=False):
     top_k: int
     source_filter: Optional[str]
     hostname: Optional[str]
+    conversation_history: List[Dict[str, str]]
     retrieved_chunks: List[RetrievedChunk]
     is_escalated: bool
     escalation_reason: Optional[str]
@@ -100,12 +101,30 @@ def check_destructive_action(query: str) -> Optional[str]:
     return None
 
 
-def check_vague_query(query: str) -> bool:
-    """Flag queries that are both short and lack any recognizable domain term."""
+def check_vague_query(query: str, history: Optional[List[Dict[str, str]]] = None) -> bool:
+    """Flag queries that are both short and lack any recognizable domain term.
+
+    A short follow-up like "what about the second option?" is not actually
+    vague if the conversation already established a domain (e.g. a prior
+    turn discussed a NAKIVO transporter error) - so recent history is
+    checked for domain terms too, not just the current message in isolation.
+    This does NOT apply to the injection or destructive-keyword checks,
+    which always evaluate the current message alone.
+    """
     query_lower = f" {query.lower()} "
     word_count = len(query.split())
     has_domain_term = any(term in query_lower for term in DOMAIN_TERMS)
-    return word_count < VAGUE_WORD_COUNT_THRESHOLD and not has_domain_term
+
+    if has_domain_term or word_count >= VAGUE_WORD_COUNT_THRESHOLD:
+        return False
+
+    if history:
+        recent_text = " ".join(turn.get("content", "") for turn in history[-4:]).lower()
+        recent_text = f" {recent_text} "
+        if any(term in recent_text for term in DOMAIN_TERMS):
+            return False
+
+    return True
 
 
 def classify_confidence_and_retrieve(state: AgentState) -> Dict[str, Any]:
@@ -114,8 +133,11 @@ def classify_confidence_and_retrieve(state: AgentState) -> Dict[str, Any]:
     query = state.get("query", "")
     top_k = state.get("top_k", 4)
     source_filter = state.get("source_filter")
+    history = state.get("conversation_history", []) or []
 
     # 1. Prompt injection check - highest priority, before any other logic
+    # (always checked against the current message alone - history never
+    # softens this or the destructive-keyword check below)
     injection_match = check_prompt_injection(query)
     if injection_match:
         return {
@@ -133,8 +155,9 @@ def classify_confidence_and_retrieve(state: AgentState) -> Dict[str, Any]:
             "escalation_reason": f"Destructive action keyword detected: '{destructive_match}'",
         }
 
-    # 3. Vagueness check: too little context to safely answer
-    if check_vague_query(query):
+    # 3. Vagueness check: too little context to safely answer, considering
+    # recent conversation history for follow-up questions
+    if check_vague_query(query, history=history):
         return {
             "retrieved_chunks": [],
             "is_escalated": True,
@@ -199,6 +222,8 @@ def generate_node(state: AgentState) -> Dict[str, Any]:
     query = state.get("query", "")
     chunks = state.get("retrieved_chunks", [])
     hostname = state.get("hostname") or "cluster-node-01"
+    history = state.get("conversation_history", []) or []
+    history = state.get("conversation_history", []) or []
 
     # 1. Deterministic tool call: Fetch live system telemetry
     system_status = check_system_status(hostname=hostname)
@@ -211,8 +236,8 @@ def generate_node(state: AgentState) -> Dict[str, Any]:
         f"{telemetry_block}"
     )
 
-    # 3. Build prompt and generate response
-    messages = build_rag_prompt(query=augmented_query, chunks=chunks)
+    # 3. Build prompt (with prior conversation turns, if any) and generate
+    messages = build_rag_prompt(query=augmented_query, chunks=chunks, history=history)
     response = llm_client.chat(messages=messages, temperature=0.2)
 
     return {
@@ -248,6 +273,7 @@ def run_agent_workflow(
     top_k: int = 4,
     source_filter: Optional[str] = None,
     hostname: Optional[str] = None,
+    conversation_history: Optional[List[Dict[str, str]]] = None,
 ) -> Dict[str, Any]:
     """Helper function to execute the compiled LangGraph workflow."""
     initial_state: AgentState = {
@@ -255,5 +281,6 @@ def run_agent_workflow(
         "top_k": top_k,
         "source_filter": source_filter,
         "hostname": hostname,
+        "conversation_history": conversation_history or [],
     }
     return app.invoke(initial_state)

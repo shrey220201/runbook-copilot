@@ -1,6 +1,6 @@
 """Prompt templates for Runbook Copilot RAG queries."""
 
-from typing import List, Dict
+from typing import List, Dict, Optional, Optional
 from rag.retriever import RetrievedChunk
 
 SYSTEM_PROMPT = """You are Runbook Copilot, an expert Site Reliability Engineer (SRE) and DevOps troubleshooting assistant.
@@ -37,8 +37,13 @@ URL: {chunk.url}
     return "\n\n".join(context_blocks)
 
 
-def build_rag_prompt(query: str, chunks: List[RetrievedChunk]) -> List[Dict[str, str]]:
-    """Build chat messages payload for LLMClient containing system prompt and formatted context."""
+def build_rag_prompt(
+    query: str,
+    chunks: List[RetrievedChunk],
+    history: Optional[List[Dict[str, str]]] = None,
+) -> List[Dict[str, str]]:
+    """Build chat messages payload for LLMClient containing system prompt, prior
+    conversation turns (if any), and formatted context for the current question."""
     formatted_context = format_context_chunks(chunks)
 
     user_message = f"""Incident Question / Problem:
@@ -51,7 +56,14 @@ def build_rag_prompt(query: str, chunks: List[RetrievedChunk]) -> List[Dict[str,
 Based on the runbook context provided above, provide a comprehensive, step-by-step resolution plan with exact diagnostic and remediation commands, caveats, and citations.
 """
 
-    return [
-        {"role": "system", "content": SYSTEM_PROMPT.strip()},
-        {"role": "user", "content": user_message.strip()},
-    ]
+    messages = [{"role": "system", "content": SYSTEM_PROMPT.strip()}]
+
+    if history:
+        for turn in history[-8:]:
+            role = turn.get("role")
+            content = turn.get("content", "")
+            if role in ("user", "assistant") and content:
+                messages.append({"role": role, "content": content})
+
+    messages.append({"role": "user", "content": user_message.strip()})
+    return messages

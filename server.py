@@ -52,6 +52,10 @@ class QueryRequest(BaseModel):
     top_k: int = Field(4, ge=1, le=10, description="Number of runbook chunks to retrieve")
     source_filter: Optional[str] = Field(None, description="Optional runbook source filter")
     hostname: Optional[str] = Field("cluster-node-01", description="Target host for mock telemetry")
+    history: List[Dict[str, str]] = Field(
+        default_factory=list,
+        description="Prior conversation turns as [{'role': 'user'|'assistant', 'content': str}, ...], most recent last",
+    )
 
 
 class ChunkResponse(BaseModel):
@@ -138,7 +142,7 @@ async def handle_query(req: QueryRequest):
                 top_k=req.top_k,
                 source_filter=source_arg,
             )
-            messages = build_rag_prompt(query=req.query, chunks=chunks)
+            messages = build_rag_prompt(query=req.query, chunks=chunks, history=req.history)
             response_text = llm_client.chat(messages=messages, temperature=0.2)
             is_escalated = False
             escalation_reason = None
@@ -150,6 +154,7 @@ async def handle_query(req: QueryRequest):
                 top_k=req.top_k,
                 source_filter=source_arg,
                 hostname=req.hostname or "cluster-node-01",
+                conversation_history=req.history,
             )
             chunks = result.get("retrieved_chunks", [])
             is_escalated = result.get("is_escalated", False)

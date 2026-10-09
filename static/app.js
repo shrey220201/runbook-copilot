@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
     hostname: "cluster-node-01",
     isLoading: false,
     historyCount: 0,
+    history: [],
   };
 
   // DOM Elements
@@ -129,6 +130,7 @@ document.addEventListener("DOMContentLoaded", () => {
     chatStream.innerHTML = "";
     welcomeHero.classList.remove("hidden");
     state.historyCount = 0;
+    state.history = [];
   });
 
   // Quick Chips
@@ -219,6 +221,7 @@ document.addEventListener("DOMContentLoaded", () => {
         top_k: state.topK,
         source_filter: state.sourceFilter,
         hostname: state.hostname,
+        history: state.history,
       };
 
       const res = await fetch("/api/query", {
@@ -234,6 +237,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const result = await res.json();
       renderAssistantResponse(turnId, result);
+
+      if (!result.is_escalated) {
+        state.history.push({ role: "user", content: query });
+        state.history.push({ role: "assistant", content: result.response });
+        if (state.history.length > 8) {
+          state.history = state.history.slice(-8);
+        }
+      }
     } catch (err) {
       renderErrorResponse(turnId, err.message);
     } finally {
